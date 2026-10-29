@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aula 14 - Geolocalização Móvel | Programação Mobile II</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Leaflet CSS & JS for Interactive Map Simulation -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ice: '#f4f6f9',
+                        darkBg: '#0f172a',
+                        senaiRed: '#dc2626',
+                        senaiRedHover: '#b91c1c',
+                        charcoal: '#1e293b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f4f6f9;
+            color: #0f172a;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #dc2626;
+        }
+        /* Leaflet map custom height */
+        #simulated-map {
+            height: 240px;
+            width: 100%;
+            border-radius: 0.75rem;
+            z-index: 10;
+        }
+        .code-block {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-red-500 selection:text-white">
+
+    <!-- Header Principal -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-red-600 text-white font-black px-3 py-1.5 rounded-lg text-lg tracking-wider shadow-sm flex items-center gap-2">
+                    <i data-lucide="navigation-2" class="w-5 h-5 fill-current"></i>
+                    <span>SENAI</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">Geolocalização Móvel: Conectando Código ao Mundo Físico</h1>
+                    <p class="text-xs text-gray-500 font-medium">Aula 14 • Programação para Dispositivos Móveis II • Técnico em DS</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 text-xs font-semibold">
+                <span class="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full border border-gray-200 flex items-center gap-1.5">
+                    <i data-lucide="smartphone" class="w-3.5 h-3.5 text-red-600"></i> Capacitor GPS
+                </span>
+                <span class="bg-red-50 text-red-700 px-3 py-1.5 rounded-full border border-red-200 flex items-center gap-1.5">
+                    <i data-lucide="users" class="w-3.5 h-3.5 text-red-600"></i> 32 Exercícios Práticos
+                </span>
+            </div>
+        </div>
+
+        <!-- Barra de Navegação Secundaria (Abas) -->
+        <nav class="bg-slate-900 text-white text-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto space-x-1 py-1">
+                <button onclick="switchTab('arquitetura')" id="tab-arquitetura" class="tab-btn active px-4 py-2.5 rounded-md font-medium flex items-center gap-2 transition text-red-400 bg-slate-800">
+                    <i data-lucide="layers" class="w-4 h-4"></i> 1. Arquitetura & Conceito
+                </button>
+                <button onclick="switchTab('passoapasso')" id="tab-passoapasso" class="tab-btn px-4 py-2.5 rounded-md font-medium flex items-center gap-2 transition text-gray-300 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="code-2" class="w-4 h-4"></i> 2. Passo a Passo da Aula
+                </button>
+                <button onclick="switchTab('emulador')" id="tab-emulador" class="tab-btn px-4 py-2.5 rounded-md font-medium flex items-center gap-2 transition text-gray-300 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="smartphone" class="w-4 h-4"></i> 3. Emulador GPS Interativo
+                </button>
+                <button onclick="switchTab('exercicios')" id="tab-exercicios" class="tab-btn px-4 py-2.5 rounded-md font-medium flex items-center gap-2 transition text-gray-300 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="list-todo" class="w-4 h-4"></i> 4. Central de 32 Exercícios
+                </button>
+                <button onclick="switchTab('avaliacao')" id="tab-avaliacao" class="tab-btn px-4 py-2.5 rounded-md font-medium flex items-center gap-2 transition text-gray-300 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="check-square" class="w-4 h-4"></i> 5. Checklist & Avaliação
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- ================= ABA 1: ARQUITETURA & CONCEITO ================= -->
+        <section id="section-arquitetura" class="space-y-8">
+            <!-- Hero / Intro -->
+            <div class="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-bl-full pointer-events-none"></div>
+                <div class="max-w-3xl relative z-10">
+                    <span class="inline-block text-xs font-bold uppercase tracking-wider text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-100 mb-3">Contexto da Aula 14</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-3">A Barreira entre a Web e o Hardware Nativo</h2>
+                    <p class="text-slate-600 text-sm sm:text-base leading-relaxed mb-4">
+                        Por padrão, o código JavaScript que executa na WebView de um aplicativo híbrido <strong>não tem permissão nem acesso direto</strong> às antenas de GPS do smartphone por questões de segurança. O plugin <code>@capacitor/geolocation</code> atua como uma <strong>Ponte Nativa (Native Bridge)</strong>, traduzindo requisições assíncronas do React para chamadas Java/Kotlin no Android.
+                    </p>
+                    <div class="flex flex-wrap gap-4 text-xs font-medium text-gray-600 pt-2 border-t border-gray-100">
+                        <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4 text-red-600"></i> Sandbox de Segurança</span>
+                        <span class="flex items-center gap-1.5"><i data-lucide="radio" class="w-4 h-4 text-red-600"></i> Sinal de Satélite + Wi-Fi</span>
+                        <span class="flex items-center gap-1.5"><i data-lucide="map-pin" class="w-4 h-4 text-red-600"></i> Coordenadas Lat/Lng</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagrama da Ponte Nativa -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="git-commit" class="w-5 h-5 text-red-600"></i>
+                    Fluxo de Funcionamento da Native Bridge (Capacitor Geolocation)
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                    <!-- Step 1 -->
+                    <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 relative flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 bg-slate-900 text-white font-bold rounded-lg flex items-center justify-center mx-auto mb-3 text-sm">1</div>
+                            <h4 class="font-bold text-slate-900 text-sm mb-1">Ambiente React (JS)</h4>
+                            <p class="text-xs text-gray-600">Executa <code>Geolocation.getCurrentPosition()</code></p>
+                        </div>
+                        <div class="mt-4 text-xs font-mono text-red-600 bg-white py-1 px-2 rounded border border-gray-200">Promise Pending</div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 relative flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 bg-red-600 text-white font-bold rounded-lg flex items-center justify-center mx-auto mb-3 text-sm">2</div>
+                            <h4 class="font-bold text-slate-900 text-sm mb-1">Capacitor Native Bridge</h4>
+                            <p class="text-xs text-gray-600">Tradução de JS para chamadas nativas em Kotlin/Java</p>
+                        </div>
+                        <div class="mt-4 text-xs font-mono text-gray-700 bg-white py-1 px-2 rounded border border-gray-200">Bridge IPC</div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 relative flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 bg-slate-900 text-white font-bold rounded-lg flex items-center justify-center mx-auto mb-3 text-sm">3</div>
+                            <h4 class="font-bold text-slate-900 text-sm mb-1">Sistema Android OS</h4>
+                            <p class="text-xs text-gray-600">Verifica o <code>AndroidManifest.xml</code> e dispara o modal de permissão</p>
+                        </div>
+                        <div class="mt-4 text-xs font-mono text-amber-700 bg-amber-50 py-1 px-2 rounded border border-amber-200">User Consent</div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 relative flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 bg-slate-900 text-white font-bold rounded-lg flex items-center justify-center mx-auto mb-3 text-sm">4</div>
+                            <h4 class="font-bold text-slate-900 text-sm mb-1">Hardware GPS / Satélite</h4>
+                            <p class="text-xs text-gray-600">Ativa o chip GPS, calcula triangulação e devolve JSON de coordenadas</p>
+                        </div>
+                        <div class="mt-4 text-xs font-mono text-emerald-700 bg-emerald-50 py-1 px-2 rounded border border-emerald-200">JSON: {lat, lng}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matriz de Permissões: Coarse vs Fine -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tabela Coarse vs Fine -->
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-5 h-5 text-red-600"></i>
+                        Matriz de Permissões Android
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-700">
+                            <thead class="bg-gray-100 text-slate-900 font-bold border-b border-gray-200">
+                                <tr>
+                                    <th class="p-2.5">Característica</th>
+                                    <th class="p-2.5">ACCESS_COARSE_LOCATION</th>
+                                    <th class="p-2.5">ACCESS_FINE_LOCATION</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr>
+                                    <td class="p-2.5 font-bold">Fonte de Dados</td>
+                                    <td class="p-2.5">Torres Celulares / Wi-Fi</td>
+                                    <td class="p-2.5">Chip GPS + Satélites</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2.5 font-bold">Precisão Real</td>
+                                    <td class="p-2.5 text-amber-700">Aproximada (100m - 2km)</td>
+                                    <td class="p-2.5 text-emerald-700 font-semibold">Exata (3m - 10m)</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2.5 font-bold">Impacto de Bateria</td>
+                                    <td class="p-2.5">Baixo consumo</td>
+                                    <td class="p-2.5 text-red-600 font-semibold">Alto consumo de energia</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2.5 font-bold">Casos de Uso</td>
+                                    <td class="p-2.5">Previsão do tempo, Notícias</td>
+                                    <td class="p-2.5">Uber, Strava, Navegação</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3 italic">* Nota: No Android 12+, o usuário pode optar por conceder apenas a localização aproximada mesmo que o app solicite a precisa. Declare sempre ambas no manifesto.</p>
+                </div>
+
+                <!-- Anatomia do Objeto GeolocationPosition -->
+                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+                            <i data-lucide="file-json" class="w-5 h-5 text-red-600"></i>
+                            Anatomia da Resposta JSON de Posição
+                        </h3>
+                        <p class="text-xs text-gray-600 mb-3">Objeto retornado ao resolver a Promise da função <code>getCurrentPosition()</code>:</p>
+                        
+                        <pre class="code-block p-4 rounded-xl text-xs font-mono leading-relaxed overflow-x-auto"><code>{
+  "coords": {
+    "latitude": -23.550520,   <span class="text-gray-400">// Latitude em graus decimais</span>
+    "longitude": -46.633308,  <span class="text-gray-400">// Longitude em graus decimais</span>
+    "accuracy": 12.5,         <span class="text-gray-400">// Margem de erro em metros</span>
+    "altitude": 760.2,        <span class="text-gray-400">// Altitude acima do nível do mar</span>
+    "speed": 0.0,             <span class="text-gray-400">// Velocidade em m/s</span>
+    "heading": null           <span class="text-gray-400">// Direção de movimento (graus)</span>
+  },
+  "timestamp": 1698754000000  <span class="text-gray-400">// Timestamp da leitura</span>
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= ABA 2: PASSO A PASSO DA AULA ================= -->
+        <section id="section-passoapasso" class="space-y-8 hidden">
+            <div class="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-sm">
+                <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Roteiro de Implementação em Sala de Aula</h2>
+                <p class="text-slate-600 text-sm mb-6">Siga estas 4 fases ordenadas para configurar e integrar a leitura de GPS no seu projeto React + Capacitor.</p>
+
+                <!-- Passo 1: Dependências -->
+                <div class="mb-8 border-b border-gray-100 pb-8">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <span class="w-8 h-8 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-sm">1</span>
+                        <h3 class="text-lg font-bold text-slate-900">Instalar Plugin do Capacitor via NPM</h3>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3 ml-11">Abra o terminal na raiz do seu projeto React e execute os comandos de instalação e sincronização nativa com a pasta do Android:</p>
+                    
+                    <div class="ml-11 relative">
+                        <pre class="code-block p-4 rounded-xl text-xs font-mono"><code>npm install @capacitor/geolocation
+npx cap sync android</code></pre>
+                        <button onclick="copyCode('npm install @capacitor/geolocation\nnpx cap sync android')" class="absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-xs text-gray-300 py-1 px-2.5 rounded border border-slate-700 flex items-center gap-1">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Passo 2: Permissões Android -->
+                <div class="mb-8 border-b border-gray-100 pb-8">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <span class="w-8 h-8 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-sm">2</span>
+                        <h3 class="text-lg font-bold text-slate-900">Configurar Permissões no AndroidManifest.xml</h3>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3 ml-11">Abra o arquivo <code>android/app/src/main/AndroidManifest.xml</code> e inclua as permissões dentro da tag <code>&lt;manifest&gt;</code>:</p>
+                    
+                    <div class="ml-11 relative">
+                        <pre class="code-block p-4 rounded-xl text-xs font-mono"><code>&lt;!-- android/app/src/main/AndroidManifest.xml --&gt;
+&lt;manifest xmlns:android="http://schemas.android.com/apk/res/android"&gt;
+
+    &lt;!-- Permissões para Leitura de Geolocalização (Coarse e Fine) --&gt;
+    &lt;uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /&gt;
+    &lt;uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /&gt;
+
+    &lt;application ...&gt;
+    &lt;/application&gt;
+&lt;/manifest&gt;</code></pre>
+                        <button onclick="copyCode('<uses-permission android:name=\&quot;android.permission.ACCESS_COARSE_LOCATION\&quot; />\n<uses-permission android:name=\&quot;android.permission.ACCESS_FINE_LOCATION\&quot; />')" class="absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-xs text-gray-300 py-1 px-2.5 rounded border border-slate-700 flex items-center gap-1">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar XML
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Passo 3: Código do Componente React -->
+                <div class="mb-8 border-b border-gray-100 pb-8">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <span class="w-8 h-8 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-sm">3</span>
+                        <h3 class="text-lg font-bold text-slate-900">Componente React Completo com Tratamento de Erro</h3>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3 ml-11">Exemplo prático de código para ler as coordenadas do smartphone usando <code>async/await</code>, controle de estados do React e parâmetros de alta precisão:</p>
+                    
+                    <div class="ml-11 relative">
+                        <pre class="code-block p-4 rounded-xl text-xs font-mono overflow-x-auto leading-relaxed"><code>import React, { useState } from 'react';
+import { Geolocation } from '@capacitor/geolocation';
+
+export default function App() {
+  const [localizacao, setLocalizacao] = useState(null);
+  const [carregando, setCarregando] = useState(false);
+  const [mensagemErro, setMensagemErro] = useState('');
+
+  // Função assíncrona para capturar coordenadas
+  const capturarLocalizacao = async () => {
+    setCarregando(true);
+    setMensagemErro('');
+
+    try {
+      // Solicita permissão e busca a posição do dispositivo
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true, // Força uso do GPS de alta precisão
+        timeout: 10000,           // Limite de tempo (10 segundos)
+        maximumAge: 3000          // Aceita cache de no máximo 3s
+      });
+
+      console.log('Posição capturada:', position);
+      
+      setLocalizacao({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        precisao: position.coords.accuracy
+      });
+    } catch (error) {
+      console.error('Erro ao acessar GPS:', error);
+      setMensagemErro('Não foi possível obter a localização. Verifique as permissões do GPS.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // URL dinâmica para abrir o ponto no Google Maps externo
+  const mapUrl = localizacao 
+    ? `https://www.google.com/maps/search/?api=1&query=${localizacao.lat},${localizacao.lng}`
+    : '#';
+
+  return (
+    &lt;div className="p-6 max-w-md mx-auto bg-white rounded-xl shadow-md border text-center space-y-4"&gt;
+      &lt;h2 className="text-xl font-bold text-gray-800"&gt;Rastreamento GPS Mobile&lt;/h2&gt;
+
+      &lt;button 
+        onClick={capturarLocalizacao}
+        disabled={carregando}
+        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow"
+      &gt;
+        {carregando ? 'Buscando Satélite...' : '📍 Pegar Minha Localização'}
+      &lt;/button&gt;
+
+      {mensagemErro && (
+        &lt;p className="text-red-600 text-sm font-semibold bg-red-50 p-2 rounded"&gt;
+          {mensagemErro}
+        &lt;/p&gt;
+      )}
+
+      {localizacao && (
+        &lt;div className="p-4 bg-gray-50 rounded-lg text-left text-sm space-y-2 border"&gt;
+          &lt;p&gt;&lt;strong&gt;Latitude:&lt;/strong&gt; {localizacao.lat}&lt;/p&gt;
+          &lt;p&gt;&lt;strong&gt;Longitude:&lt;/strong&gt; {localizacao.lng}&lt;/p&gt;
+          &lt;p&gt;&lt;strong&gt;Precisão:&lt;/strong&gt; {localizacao.precisao} metros&lt;/p&gt;
+
+          &lt;a 
+            href={mapUrl}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="mt-3 block bg-slate-900 text-white text-center py-2 rounded-lg font-medium hover:bg-slate-800"
+          &gt;
+            🗺️ Abrir no Google Maps
+          &lt;/a&gt;
+        &lt;/div&gt;
+      )}
+    &lt;/div&gt;
+  );
+}</code></pre>
+                        <button onclick="copyCode(document.querySelector('#section-passoapasso code').innerText)" class="absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-xs text-gray-300 py-1 px-2.5 rounded border border-slate-700 flex items-center gap-1">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código React
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Passo 4: Teste Físico em Sala -->
+                <div>
+                    <div class="flex items-center space-x-3 mb-3">
+                        <span class="w-8 h-8 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-sm">4</span>
+                        <h3 class="text-lg font-bold text-slate-900">Teste em Dispositivo Físico Android via USB</h3>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3 ml-11">
+                        Conecte seu smartphone via cabo USB com a <strong>Depuração USB</strong> ativada e rode o comando:
+                    </p>
+                    <div class="ml-11">
+                        <pre class="code-block p-3 rounded-xl text-xs font-mono"><code>npx cap run android</code></pre>
+                        <p class="text-xs text-gray-500 mt-2">
+                            💡 <strong>Dica Metodológica para Testes na Escola:</strong> Se o sinal de satélite demorar devido ao teto do laboratório, ative as <em>Opções de Desenvolvedor</em> no celular e configure um aplicativo de "Simulação de Localização (Mock Location)".
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= ABA 3: EMULADOR GPS INTERATIVO ================= -->
+        <section id="section-emulador" class="space-y-8 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Celular Mockup (Esquerda/Centro) -->
+                <div class="lg:col-span-6 flex justify-center">
+                    <div class="w-full max-w-sm bg-slate-900 p-4 rounded-[2.5rem] shadow-2xl border-4 border-slate-800 text-slate-900 relative">
+                        <!-- Camera Notch / Speaker -->
+                        <div class="w-32 h-4 bg-slate-800 mx-auto rounded-b-xl mb-3 flex items-center justify-center">
+                            <div class="w-3 h-3 bg-slate-900 rounded-full mr-2"></div>
+                            <div class="w-10 h-1 bg-slate-700 rounded-full"></div>
+                        </div>
+
+                        <!-- Tela Interna do Smartphone -->
+                        <div class="bg-white rounded-[1.8rem] overflow-hidden min-h-[520px] p-4 flex flex-col justify-between border border-gray-200">
+                            
+                            <!-- Header do App Simulado -->
+                            <div>
+                                <div class="flex items-center justify-between pb-3 mb-3 border-b border-gray-100 text-xs font-semibold text-slate-600">
+                                    <span class="flex items-center gap-1"><i data-lucide="signal" class="w-3.5 h-3.5 text-slate-800"></i> SENAI Mobile GPS</span>
+                                    <span id="emulator-clock" class="text-gray-400 font-mono">14:00</span>
+                                </div>
+
+                                <div class="text-center space-y-3">
+                                    <h3 class="text-base font-extrabold text-slate-900">Capacitor Location App</h3>
+                                    <p class="text-xs text-gray-500">Teste de captura nativa em tempo real</p>
+
+                                    <!-- Botoes de Ação no App Simulado -->
+                                    <div class="space-y-2 pt-2">
+                                        <button onclick="triggerEmulatorGPS('browser')" class="w-full bg-red-600 hover:bg-red-700 active:scale-95 transition text-white font-bold py-2.5 px-3 rounded-xl text-xs shadow flex items-center justify-center gap-2">
+                                            <i data-lucide="crosshair" class="w-4 h-4"></i> Ler GPS Real do Navegador
+                                        </button>
+                                        
+                                        <button onclick="triggerEmulatorGPS('senai')" class="w-full bg-slate-900 hover:bg-slate-800 active:scale-95 transition text-white font-semibold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2">
+                                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-red-500"></i> Simular Coordenadas SENAI/SP
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Status / Alertas no App -->
+                                <div id="emulator-status" class="mt-4 hidden">
+                                    <div class="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 flex items-start gap-2">
+                                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 shrink-0 mt-0.5"></i>
+                                        <span id="emulator-status-text">Permissão solicitada...</span>
+                                    </div>
+                                </div>
+
+                                <!-- Display de Coordenadas Capturadas -->
+                                <div id="emulator-result" class="mt-4 hidden space-y-3">
+                                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs space-y-1">
+                                        <div class="flex justify-between border-b border-gray-200 pb-1">
+                                            <span class="text-gray-500">Latitude:</span>
+                                            <span id="disp-lat" class="font-mono font-bold text-slate-900">-23.55052</span>
+                                        </div>
+                                        <div class="flex justify-between border-b border-gray-200 pb-1">
+                                            <span class="text-gray-500">Longitude:</span>
+                                            <span id="disp-lng" class="font-mono font-bold text-slate-900">-46.63330</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Precisão Raio:</span>
+                                            <span id="disp-acc" class="font-mono text-emerald-600 font-semibold">12m</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Mapa Leaflet embutido -->
+                                    <div id="simulated-map" class="shadow-inner border border-gray-200"></div>
+
+                                    <a id="disp-map-link" href="#" target="_blank" class="block bg-red-600 hover:bg-red-700 text-white text-center py-2 rounded-xl text-xs font-bold transition">
+                                        📍 Abrir no Google Maps Nativo
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Footer do Smartphone -->
+                            <div class="pt-3 border-t border-gray-100 flex justify-around text-gray-400">
+                                <div class="w-3 h-3 border-2 border-gray-400 rounded-sm"></div>
+                                <div class="w-3 h-3 border-2 border-gray-400 rounded-full"></div>
+                                <div class="w-3 h-3 border-l-2 border-b-2 border-gray-400 rotate-45"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Console de Logs Nativo / Inspecionar Chamadas (Direita) -->
+                <div class="lg:col-span-6 space-y-6">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                        <h3 class="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-5 h-5 text-red-600"></i>
+                            Console Logcat & Eventos do Capacitor
+                        </h3>
+                        <p class="text-xs text-gray-500 mb-4">Acompanhe os logs simulados da chamada para o SO Android:</p>
+
+                        <div id="emulator-logcat" class="code-block p-4 rounded-xl text-xs font-mono h-80 overflow-y-auto space-y-2 leading-relaxed">
+                            <div class="text-gray-500">[SYSTEM] Dispositivo pronto. Aguardando interação do usuário...</div>
+                        </div>
+
+                        <div class="mt-4 flex justify-between items-center">
+                            <button onclick="clearLogcat()" class="text-xs text-gray-500 hover:text-slate-900 flex items-center gap-1 font-medium">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Limpar Console
+                            </button>
+                            <span class="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Capacitor Plugin Active
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Card Informativo sobre Erros de GPS -->
+                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-3">
+                        <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                            <i data-lucide="bug" class="w-4 h-4 text-red-600"></i>
+                            Simular Situações de Falha de Hardware
+                        </h4>
+                        <p class="text-xs text-gray-600">Teste como o bloco <code>try / catch</code> reage em condições adversas:</p>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="simulateError('denied')" class="bg-gray-100 hover:bg-gray-200 text-slate-800 text-xs font-medium py-2 px-3 rounded-lg text-left border border-gray-200">
+                                🚫 Permissão Negada
+                            </button>
+                            <button onclick="simulateError('timeout')" class="bg-gray-100 hover:bg-gray-200 text-slate-800 text-xs font-medium py-2 px-3 rounded-lg text-left border border-gray-200">
+                                ⏳ Timeout (Sem Sinal)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= ABA 4: CENTRAL DE 32 EXERCÍCIOS INDIVIDUAIS ================= -->
+        <section id="section-exercicios" class="space-y-6 hidden">
+            <!-- Header dos Exercicios -->
+            <div class="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="inline-block text-xs font-bold uppercase tracking-wider text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-100 mb-2">Atividade Prática Individual</span>
+                    <h2 class="text-2xl font-extrabold text-slate-900">32 Desafios Práticos com Temas Exclusivos</h2>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">Cada aluno deve localizar seu número/nome na lista abaixo, ler a regra de negócio e implementar o app customizado.</p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="bg-gray-100 p-3 rounded-xl border border-gray-200 text-center">
+                        <span id="completed-count" class="block font-black text-xl text-red-600">0</span>
+                        <span class="text-[10px] uppercase tracking-wider font-bold text-gray-500">Concluídos</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros & Campo de Busca -->
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-3 justify-between items-center">
+                <!-- Input de Busca -->
+                <div class="relative w-full sm:w-80">
+                    <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-3"></i>
+                    <input type="text" id="exercise-search" oninput="filterExercises()" placeholder="Buscar por Aluno (Ex: Aluno 05, Uber, Pet)..." class="w-full bg-gray-50 border border-gray-300 text-slate-900 text-xs rounded-lg pl-9 pr-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-red-500 font-medium">
+                </div>
+
+                <!-- Chips de Categoria -->
+                <div class="flex flex-wrap gap-1.5 w-full sm:w-auto text-xs">
+                    <button onclick="setCategoryFilter('all')" class="chip-filter active px-3 py-1.5 rounded-lg bg-slate-900 text-white font-medium">Todos (32)</button>
+                    <button onclick="setCategoryFilter('Sustentabilidade')" class="chip-filter px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium">Sustentabilidade</button>
+                    <button onclick="setCategoryFilter('Saúde')" class="chip-filter px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium">Saúde & Emergência</button>
+                    <button onclick="setCategoryFilter('Mobilidade')" class="chip-filter px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium">Mobilidade & Frota</button>
+                    <button onclick="setCategoryFilter('Serviços')" class="chip-filter px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium">Serviços Urbanos</button>
+                </div>
+            </div>
+
+            <!-- Grid de Exercícios (32 Cards) -->
+            <div id="exercises-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Renderizado dinamicamente via JS -->
+            </div>
+        </section>
+
+        <!-- ================= ABA 5: CHECKLIST & AVALIAÇÃO ================= -->
+        <section id="section-avaliacao" class="space-y-6 hidden">
+            <div class="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm">
+                <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Critérios de Avaliação Prática em Sala</h2>
+                <p class="text-sm text-gray-600 mb-6">Validação do projeto prático individual entregue em dispositivo físico ou emulador.</p>
+
+                <div class="space-y-4">
+                    <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-start space-x-3">
+                        <input type="checkbox" id="crit-1" class="mt-1 w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500">
+                        <label for="crit-1" class="text-sm text-slate-800">
+                            <strong>1. Configuração do AndroidManifest.xml (2,5 pts):</strong> Declaração correta de ambos os níveis de permissão (<code>ACCESS_COARSE_LOCATION</code> e <code>ACCESS_FINE_LOCATION</code>).
+                        </label>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-start space-x-3">
+                        <input type="checkbox" id="crit-2" class="mt-1 w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500">
+                        <label for="crit-2" class="text-sm text-slate-800">
+                            <strong>2. Tratamento Assíncrono e Resiliência (2,5 pts):</strong> Uso adequado do bloco <code>try / catch</code>, estado de carregamento e mensagem amigável caso a permissão seja negada.
+                        </label>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-start space-x-3">
+                        <input type="checkbox" id="crit-3" class="mt-1 w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500">
+                        <label for="crit-3" class="text-sm text-slate-800">
+                            <strong>3. Captura do Hardware e Apresentação (2,5 pts):</strong> Exibição das coordenadas reais de latitude/longitude e raio de precisão em metros no leiaute do app.
+                        </label>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-start space-x-3">
+                        <input type="checkbox" id="crit-4" class="mt-1 w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500">
+                        <label for="crit-4" class="text-sm text-slate-800">
+                            <strong>4. Integração com a Regra do Tema Individual (2,5 pts):</strong> Aplicação correta dos requisitos específicos sorteados para seu número de aluno.
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-gray-400 text-xs py-8 border-t border-slate-800 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
+            <p class="font-medium text-gray-300">SENAI • Programação para Dispositivos Móveis II • Aula 14</p>
+            <p>Desenvolvido para apoio pedagógico em sala de aula • Design System: Ice White, Red & Charcoal</p>
+        </div>
+    </footer>
+
+    <!-- MODAL DE EXERCÍCIO INDIVIDUAL -->
+    <div id="exercise-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6 relative">
+            <button onclick="closeExerciseModal()" class="absolute top-4 right-4 text-gray-400 hover:text-slate-900 p-2 rounded-full hover:bg-gray-100">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <span id="modal-student-id" class="bg-red-600 text-white font-bold text-xs px-2.5 py-1 rounded">Aluno 01</span>
+                    <span id="modal-category" class="bg-gray-100 text-gray-700 font-semibold text-xs px-2.5 py-1 rounded border border-gray-200">Sustentabilidade</span>
+                </div>
+                <h3 id="modal-title" class="text-2xl font-black text-slate-900">EcoColeta - Ponto de Descarte Seletivo</h3>
+            </div>
+
+            <!-- Regra de Negocio do Enunciado -->
+            <div class="bg-red-50/60 p-4 rounded-xl border border-red-100 space-y-2">
+                <h4 class="font-bold text-red-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="target" class="w-4 h-4 text-red-600"></i> Desafio & Regra de Negócio
+                </h4>
+                <p id="modal-description" class="text-xs text-slate-700 leading-relaxed">
+                    Você deve criar uma tela em React onde o cidadão registra o descarte de materiais recicláveis (Plástico, Vidro, Papel, Metal). O app deve capturar a localização exata do ponto de descarte via GPS e gerar a estrutura de objeto pronta para persistência.
+                </p>
+            </div>
+
+            <!-- Requisitos Tecnicos Específicos -->
+            <div>
+                <h4 class="font-bold text-slate-900 text-sm mb-2 flex items-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-red-600"></i> Requisitos do App
+                </h4>
+                <ul id="modal-requirements" class="list-disc list-inside text-xs text-slate-600 space-y-1">
+                    <!-- Preenchido via JS -->
+                </ul>
+            </div>
+
+            <!-- Código Starter Personalizado -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="font-bold text-slate-900 text-sm">Código Base Starter (React Component)</h4>
+                    <button id="modal-copy-btn" onclick="copyModalCode()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código
+                    </button>
+                </div>
+                <pre class="code-block p-4 rounded-xl text-xs font-mono max-h-60 overflow-y-auto leading-relaxed"><code id="modal-code-block">
+// Código customizado para este exercício...
+                </code></pre>
+            </div>
+
+            <div class="pt-4 border-t border-gray-100 flex justify-end">
+                <button onclick="closeExerciseModal()" class="bg-gray-100 hover:bg-gray-200 text-slate-800 font-bold px-5 py-2.5 rounded-xl text-xs">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION DE CÓPIA -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-medium translate-y-20 opacity-0 transition-all duration-300 z-50 border border-slate-700">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toast-message">Código copiado para a área de transferência!</span>
+    </div>
+
+    <!-- SCRIPT DA APLICAÇÃO -->
+    <script>
+        // Array de Dados com os 32 Exercícios Individuais
+        const exercisesData = [
+            {
+                id: 1,
+                student: "Aluno 01",
+                app: "EcoColeta",
+                category: "Sustentabilidade",
+                desc: "Desenvolva um app de registro de pontos de coleta seletiva urbana. O usuário seleciona o tipo de lixo (Plástico, Vidro, Orgânico) e grava a coordenada do local para os catadores.",
+                reqs: [
+                    "Seleção de tipo de resíduo via radio ou select",
+                    "Capturar lat/lng do ponto com alta precisão",
+                    "Gerar objeto JSON formatado para envio ao banco",
+                    "Botão para ver localização no Google Maps"
+                ],
+                code: `import React, { useState } from 'react';
+import { Geolocation } from '@capacitor/geolocation';
+
+export default function EcoColeta() {
+  const [tipoResiduo, setTipoResiduo] = useState('Plástico');
+  const [ponto, setPonto] = useState(null);
+
+  const registrarPonto = async () => {
+    try {
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+      setPonto({
+        tipo: tipoResiduo,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        data: new Date().toLocaleString()
+      });
+    } catch (e) {
+      alert("Erro ao capturar GPS do Ponto de Coleta");
+    }
+  };
+
+  return (
+    <div className="p-4 border rounded-xl space-y-3 bg-white text-slate-800">
+      <h2 className="font-bold text-lg text-red-600">EcoColeta - Descarte Seletivo</h2>
+      <select value={tipoResiduo} onChange={e => setTipoResiduo(e.target.value)} className="w-full p-2 border rounded">
+        <option>Plástico</option>
+        <option>Vidro</option>
+        <option>Metal</option>
+        <option>Eletrônicos</option>
+      </select>
+      <button onClick={registrarPonto} className="w-full bg-red-600 text-white font-bold py-2 rounded">
+        📍 Registrar Ponto de Coleta
+      </button>
+      {ponto && (
+        <div className="p-3 bg-gray-100 rounded text-xs space-y-1">
+          <p><strong>Resíduo:</strong> {ponto.tipo}</p>
+          <p><strong>Lat/Lng:</strong> {ponto.lat}, {ponto.lng}</p>
+          <p><strong>Data:</strong> {ponto.data}</p>
+        </div>
+      )}
+    </div>
+  );
+}`
+            },
+            {
+                id: 2,
+                student: "Aluno 02",
+                app: "PetRadar",
+                category: "Saúde",
+                desc: "Criar um mapa de alerta de pets desaparecidos. Tutor cadastra o nome do animal, foto descritiva e grava a coordenada de onde ele sumiu.",
+                reqs: [
+                    "Input do nome e espécie do Pet",
+                    "Botão 'Marcar Onde Vi Pela Última Vez'",
+                    "Cálculo visual de precisão de raio em metros",
+                    "Aviso caso o GPS esteja impreciso (> 50m)"
+                ],
+                code: `import React, { useState } from 'react';
+import { Geolocation } from '@capacitor/geolocation';
+
+export default function PetRadar() {
+  const [petNome, setPetNome] = useState('');
+  const [alerta, setAlerta] = useState(null);
+
+  const dispararAlerta = async () => {
+    if(!petNome) return alert("Digite o nome do pet");
+    const pos = await Geolocation.getCurrentPosition();
+    setAlerta({
+      nome: petNome,
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      precisao: pos.coords.accuracy
+    });
+  };
+
+  return (
+    <div className="p-4 border rounded-xl space-y-3 bg-white">
+      <h2 className="font-bold text-lg text-slate-900">🐶 PetRadar - Alerta de Desaparecimento</h2>
+      <input 
+        type="text" placeholder="Nome do Pet..." 
+        value={petNome} onChange={e => setPetNome(e.target.value)} 
+        className="w-full p-2 border rounded text-xs"
+      />
+      <button onClick={dispararAlerta} className="w-full bg-red-600 text-white font-bold py-2 rounded text-xs">
+        🚨 Registrar Ponto de Sumiço (GPS)
+      </button>
+      {alerta && (
+        <div className="p-3 bg-red-50 text-red-800 text-xs rounded border border-red-200">
+          <p><strong>Pet:</strong> {alerta.nome}</p>
+          <p><strong>Última Localização:</strong> {alerta.lat}, {alerta.lng}</p>
+          <p><strong>Raio de busca:</strong> {alerta.precisao}m</p>
+        </div>
+      )}
+    </div>
+  );
+}`
+            },
+            {
+                id: 3,
+                student: "Aluno 03",
+                app: "AgroSolo",
+                category: "Sustentabilidade",
+                desc: "App para engenheiros agrônomos registrarem a posição exata de amostras de solo coletadas na lavoura para análise laboratorial.",
+                reqs: [
+                    "Input de Profundidade da amostra (cm)",
+                    "Captura de coordenadas com altitude",
+                    "Geração de etiqueta digital da amostra"
+                ],
+                code: `// Código AgroSolo...`
+            },
+            {
+                id: 4,
+                student: "Aluno 04",
+                app: "DefesaAlerta",
+                category: "Saúde",
+                desc: "App da Defesa Civil municipal para cidadãos reportarem pontos de enchentes e desmoronamentos com envio imediato do GPS de emergência.",
+                reqs: [
+                    "Botão de pânico / emergência com alta prioridade",
+                    "Captura de localização com timeout de 5s",
+                    "Envio de status de severidade (Baixo, Médio, Crítico)"
+                ],
+                code: `// Código DefesaAlerta...`
+            },
+            {
+                id: 5,
+                student: "Aluno 05",
+                app: "BikeRota",
+                category: "Mobilidade",
+                desc: "Gravador de rotas de ciclismo urbano. O ciclista grava a posição inicial ao sair e a final ao chegar, comparando o deslocamento.",
+                reqs: [
+                    "Botão 'Iniciar Pedal' e 'Finalizar Pedal'",
+                    "Armazenamento do ponto inicial e final no estado React",
+                    "Link dinâmico de rota entre os dois pontos no mapa"
+                ],
+                code: `// Código BikeRota...`
+            },
+            {
+                id: 6,
+                student: "Aluno 06",
+                app: "FoodTruckFinder",
+                category: "Serviços",
+                desc: "Comerciantes móveis (Food Trucks) atualizam sua localização em tempo real para que clientes do bairro os encontrem.",
+                reqs: [
+                    "Toggle 'Aberto / Fechado'",
+                    "Atualização periódica de localização via GPS",
+                    "Botão de traçar rota para o cliente"
+                ],
+                code: `// Código FoodTruckFinder...`
+            },
+            {
+                id: 7,
+                student: "Aluno 07",
+                app: "ObraTracker",
+                category: "Serviços",
+                desc: "Ponto eletrônico geolocalizado para operários da construção civil baterem ponto apenas se estiverem dentro do raio da obra.",
+                reqs: [
+                    "Coordenada fixa da obra configurada",
+                    "Validação de proximidade do trabalhador",
+                    "Bloqueio de registro caso esteja fora da obra"
+                ],
+                code: `// Código ObraTracker...`
+            },
+            {
+                id: 8,
+                student: "Aluno 08",
+                app: "HealthUrgence",
+                category: "Saúde",
+                desc: "Chamada de emergência médica com envio imediato de coordenadas para central de ambulâncias.",
+                reqs: [
+                    "Ativação de GPS em modo 'High Accuracy'",
+                    "Exibição imediata da margem de erro",
+                    "Botão para ligar para 192 anexando coordenadas"
+                ],
+                code: `// Código HealthUrgence...`
+            }
+            // (Os 32 exercícios estão cadastrados na logica completa do JS abaixo)
+        ];
+
+        // Preenchimento automático dos 32 alunos
+        const categoriasDisponiveis = ["Sustentabilidade", "Saúde", "Mobilidade", "Serviços"];
+        const titulosExemplo = [
+            { app: "VagaCerta", cat: "Serviços", desc: "Mapeamento de vagas de estacionamento PWD e idosos na via pública." },
+            { app: "TurismoCultural", cat: "Serviços", desc: "Audioguia cultural acionado ao se aproximar de um monumento histórico." },
+            { app: "EntregaSegura", cat: "Mobilidade", desc: "Confirmação de recebimento de pacote com foto e coordenadas do cliente." },
+            { app: "PatrimonioUrbano", cat: "Serviços", desc: "Denúncia de postes queimados e vandalismo na cidade com lat/lng." },
+            { app: "TaxiAereoRural", cat: "Mobilidade", desc: "Check-in e registro de pistas de pouso não homologadas no interior." },
+            { app: "GlicoseOnTheGo", cat: "Saúde", desc: "Localização de farmácias com insulina mais próximas em emergências." },
+            { app: "SolarMap", cat: "Sustentabilidade", desc: "Cadastro de instalações de painéis solares para mapeamento de energia verde." },
+            { app: "PescaCerta", cat: "Sustentabilidade", desc: "Registro de marcação de waypoints de pesca em rios e represas." },
+            { app: "SafeWalk", cat: "Saúde", desc: "Botão de pânico universitário com envio de SMS/WhatsApp do mapa para contatos." },
+            { app: "InspecaoEletrica", cat: "Serviços", desc: "Técnico da concessionária mapeia postes danificados por tempestade." },
+            { app: "FeiraLivre", cat: "Serviços", desc: "Encontre a feira orgânica mais próxima acontecendo hoje." },
+            { app: "BusTempoReal", cat: "Mobilidade", desc: "Passageiros informam a posição do ônibus urbano no ponto para outros usuários." },
+            { app: "GuardaAmbiental", cat: "Sustentabilidade", desc: "Denúncia de focos de queimada em mata fechada com registro offline." },
+            { app: "CaronaSolidaria", cat: "Mobilidade", desc: "Ponto de encontro de caronas universitárias validado via GPS." },
+            { app: "BiblioMovel", cat: "Serviços", desc: "Acompanhe em qual praça a biblioteca itinerante da prefeitura está agora." },
+            { app: "Guinchos24h", cat: "Mobilidade", desc: "Solicitação de reboque na rodovia sem necessidade de saber o km exato." },
+            { app: "VigilanciaSanitaria", cat: "Saúde", desc: "Fiscal registra auto de vistoria em restaurante gravando o GPS local." },
+            { app: "CensoAnimal", cat: "Saúde", desc: "Registro de cães e gatos comunitários para vacinação do Zoonoses." },
+            { app: "TrilhaSegura", cat: "Sustentabilidade", desc: "Check-in de montanhistas nos pontos de controle de parques ecológicos." },
+            { app: "TapaBuraco", cat: "Serviços", desc: "Registro fotográfico de buracos no asfalto enviado à Secretaria de Obras." },
+            { app: "EventosRua", cat: "Serviços", desc: "Rastreamento do deslocamento de blocos de rua e procissões urbanas." },
+            { app: "PiscinaZeroDengue", cat: "Saúde", desc: "Agente de endemias registra focos de Aedes Aegypti por coordenada." },
+            { app: "DeliveryGas", cat: "Mobilidade", desc: "Rastreio em tempo real do caminhão de gás de cozinha no bairro." },
+            { app: "FrotaAgricola", cat: "Mobilidade", desc: "Telemetria e rastreamento da velocidade de tratores durante a colheita." }
+        ];
+
+        // Completar até 32 itens dinamicamente
+        for(let i = 9; i <= 32; i++) {
+            const exIndex = (i - 9) % titulosExemplo.length;
+            const itemObj = titulosExemplo[exIndex];
+            exercisesData.push({
+                id: i,
+                student: `Aluno ${i < 10 ? '0' + i : i}`,
+                app: itemObj.app,
+                category: itemObj.cat,
+                desc: itemObj.desc,
+                reqs: [
+                    "Capturar coordenadas com Geolocation.getCurrentPosition()",
+                    "Validar permissões e erros de timeout com try/catch",
+                    "Exibir resultado na tela e gerar link para Google Maps",
+                    "Atender à regra de negócio do tema " + itemObj.app
+                ],
+                code: `// Código Base para ${itemObj.app} (Aluno ${i})\nimport { Geolocation } from '@capacitor/geolocation';\n\nexport default function ${itemObj.app}() {\n  // Implemente sua lógica aqui...\n}`
+            });
+        }
+
+        // Variaveis de Estado
+        let activeCategory = 'all';
+        let currentModalExercise = null;
+        let leafletMap = null;
+        let leafletMarker = null;
+
+        // Troca de Abas Principais
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('text-red-400', 'bg-slate-800');
+                btn.classList.add('text-gray-300');
+            });
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if(activeBtn) {
+                activeBtn.classList.add('text-red-400', 'bg-slate-800');
+            }
+
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            const secToShow = document.getElementById(`section-${tabId}`);
+            if(secToShow) secToShow.classList.remove('hidden');
+
+            if(tabId === 'emulador' && !leafletMap) {
+                setTimeout(initLeafletMap, 200);
+            }
+        }
+
+        // Inicializar Mapa Leaflet no Simulador
+        function initLeafletMap() {
+            const defaultLat = -23.55052;
+            const defaultLng = -46.63330;
+            leafletMap = L.map('simulated-map').setView([defaultLat, defaultLng], 14);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(leafletMap);
+
+            leafletMarker = L.marker([defaultLat, defaultLng]).addTo(leafletMap);
+        }
+
+        // Disparar GPS no Simulador Mobile
+        function triggerEmulatorGPS(mode) {
+            const statusDiv = document.getElementById('emulator-status');
+            const statusText = document.getElementById('emulator-status-text');
+            const resultDiv = document.getElementById('emulator-result');
+            
+            statusDiv.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+            statusText.innerText = "Conectando ao receptor de satélite...";
+
+            appendLogcat(`[ACTION] Disparado gatilho Geolocation.getCurrentPosition({mode: '${mode}'})`);
+
+            setTimeout(() => {
+                if(mode === 'browser') {
+                    if ("geolocation" in navigator) {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                                showEmulatorSuccess(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+                            },
+                            (err) => {
+                                appendLogcat(`[ERROR] Falha de leitura real: ${err.message}. Usando coordenadas simuladas.`);
+                                showEmulatorSuccess(-23.55052, -46.63330, 15);
+                            }
+                        );
+                    } else {
+                        showEmulatorSuccess(-23.55052, -46.63330, 20);
+                    }
+                } else {
+                    // Modo SENAI/SP
+                    showEmulatorSuccess(-23.5042, -47.4589, 8); // Coordenadas Sorocaba/SP
+                }
+            }, 1200);
+        }
+
+        function showEmulatorSuccess(lat, lng, accuracy) {
+            document.getElementById('emulator-status').classList.add('hidden');
+            document.getElementById('emulator-result').classList.remove('hidden');
+
+            document.getElementById('disp-lat').innerText = lat.toFixed(6);
+            document.getElementById('disp-lng').innerText = lng.toFixed(6);
+            document.getElementById('disp-acc').innerText = Math.round(accuracy) + 'm';
+            document.getElementById('disp-map-link').href = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+            appendLogcat(`[SUCCESS] Resposta nativa recebida: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}, Acc: ${accuracy}m`);
+
+            if(leafletMap) {
+                leafletMap.setView([lat, lng], 15);
+                if(leafletMarker) leafletMarker.setLatLng([lat, lng]);
+                leafletMap.invalidateSize();
+            }
+        }
+
+        function simulateError(type) {
+            document.getElementById('emulator-result').classList.add('hidden');
+            const statusDiv = document.getElementById('emulator-status');
+            const statusText = document.getElementById('emulator-status-text');
+            statusDiv.classList.remove('hidden');
+
+            if(type === 'denied') {
+                statusText.innerText = "Erro: Usuário recusou a permissão de localização no Android (ACCESS_FINE_LOCATION denied).";
+                appendLogcat(`[WARN] User rejected permission prompt.`);
+            } else {
+                statusText.innerText = "Erro: Timeout excedido (10000ms). Nenhum sinal de GPS encontrado em ambiente coberto.";
+                appendLogcat(`[ERROR] GPS Hardware Timeout (10s) - Signal lost.`);
+            }
+        }
+
+        function appendLogcat(msg) {
+            const logDiv = document.getElementById('emulator-logcat');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div><span class="text-gray-500">[${time}]</span> ${msg}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLogcat() {
+            document.getElementById('emulator-logcat').innerHTML = '<div class="text-gray-500">[SYSTEM] Console limpo. Aguardando novos eventos...</div>';
+        }
+
+        // Renderização dos Exercícios Práticos
+        function renderExercises() {
+            const grid = document.getElementById('exercises-grid');
+            const searchTerm = document.getElementById('exercise-search').value.toLowerCase();
+            
+            const filtered = exercisesData.filter(ex => {
+                const matchesCat = (activeCategory === 'all' || ex.category.toLowerCase().includes(activeCategory.toLowerCase()));
+                const matchesSearch = ex.student.toLowerCase().includes(searchTerm) || 
+                                      ex.app.toLowerCase().includes(searchTerm) || 
+                                      ex.desc.toLowerCase().includes(searchTerm);
+                return matchesCat && matchesSearch;
+            });
+
+            grid.innerHTML = '';
+
+            filtered.forEach(ex => {
+                const isDone = localStorage.getItem(`ex_done_${ex.id}`) === 'true';
+
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-2xl p-6 border ${isDone ? 'border-emerald-300 bg-emerald-50/20' : 'border-gray-200'} shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4`;
+                
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="bg-red-600 text-white font-extrabold text-xs px-2.5 py-1 rounded-md">${ex.student}</span>
+                            <span class="bg-gray-100 text-gray-700 font-semibold text-[11px] px-2.5 py-1 rounded-full border border-gray-200">${ex.category}</span>
+                        </div>
+
+                        <h3 class="text-lg font-black text-slate-900 mb-1">${ex.app}</h3>
+                        <p class="text-xs text-gray-600 line-clamp-3 leading-relaxed mb-3">${ex.desc}</p>
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-100 flex items-center justify-between">
+                        <button onclick="openExerciseModal(${ex.id})" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition">
+                            <i data-lucide="code" class="w-3.5 h-3.5"></i> Ver Desafio & Código
+                        </button>
+
+                        <label class="flex items-center space-x-1.5 cursor-pointer text-xs font-semibold ${isDone ? 'text-emerald-700' : 'text-gray-500'}">
+                            <input type="checkbox" onchange="toggleDone(${ex.id})" ${isDone ? 'checked' : ''} class="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500">
+                            <span>${isDone ? 'Concluído' : 'Pendente'}</span>
+                        </label>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            lucide.createIcons();
+            updateCompletedCount();
+        }
+
+        function filterExercises() {
+            renderExercises();
+        }
+
+        function setCategoryFilter(cat) {
+            activeCategory = cat;
+            document.querySelectorAll('.chip-filter').forEach(btn => {
+                btn.classList.remove('bg-slate-900', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            });
+            event.target.classList.remove('bg-gray-100', 'text-gray-700');
+            event.target.classList.add('bg-slate-900', 'text-white');
+            renderExercises();
+        }
+
+        function toggleDone(id) {
+            const key = `ex_done_${id}`;
+            const current = localStorage.getItem(key) === 'true';
+            localStorage.setItem(key, (!current).toString());
+            renderExercises();
+        }
+
+        function updateCompletedCount() {
+            let count = 0;
+            for(let i = 1; i <= 32; i++) {
+                if(localStorage.getItem(`ex_done_${i}`) === 'true') count++;
+            }
+            document.getElementById('completed-count').innerText = count;
+        }
+
+        // Modal de Exercício
+        function openExerciseModal(id) {
+            const ex = exercisesData.find(e => e.id === id);
+            if(!ex) return;
+
+            currentModalExercise = ex;
+            document.getElementById('modal-student-id').innerText = ex.student;
+            document.getElementById('modal-category').innerText = ex.category;
+            document.getElementById('modal-title').innerText = `${ex.app} - Desafio Prático`;
+            document.getElementById('modal-description').innerText = ex.desc;
+
+            const reqsList = document.getElementById('modal-requirements');
+            reqsList.innerHTML = '';
+            ex.reqs.forEach(r => {
+                const li = document.createElement('li');
+                li.innerText = r;
+                reqsList.appendChild(li);
+            });
+
+            document.getElementById('modal-code-block').innerText = ex.code;
+
+            document.getElementById('exercise-modal').classList.remove('hidden');
+        }
+
+        function closeExerciseModal() {
+            document.getElementById('exercise-modal').classList.add('hidden');
+        }
+
+        function copyModalCode() {
+            if(!currentModalExercise) return;
+            copyCode(currentModalExercise.code);
+        }
+
+        // Utilitário de Cópia com Toast
+        function copyCode(text) {
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+
+            showToast();
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // Atualizador de relógio do smartphone simulado
+        setInterval(() => {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const clockEl = document.getElementById('emulator-clock');
+            if(clockEl) clockEl.innerText = timeStr;
+        }, 1000);
+
+        // Inicialização na carga da página
+        window.onload = function() {
+            lucide.createIcons();
+            renderExercises();
+        };
+    </script>
+</body>
+</html>
